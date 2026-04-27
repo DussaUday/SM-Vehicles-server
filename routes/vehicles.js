@@ -138,6 +138,29 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(500).json({ message: 'Error deleting vehicle' });
   }
 });
+
+// PATCH toggle sold status
+router.patch('/:id/toggle-sold', auth, async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+
+    vehicle.isSold = !vehicle.isSold;
+    vehicle.updatedAt = Date.now();
+    await vehicle.save();
+
+    res.json({ 
+      message: `Vehicle marked as ${vehicle.isSold ? 'sold' : 'available'}`,
+      vehicle 
+    });
+  } catch (error) {
+    console.error('Error toggling sold status:', error);
+    res.status(500).json({ message: 'Error updating vehicle status' });
+  }
+});
+
 // GET all vehicles with optional type filter
 router.get('/', async (req, res) => {
   try {
@@ -146,7 +169,7 @@ router.get('/', async (req, res) => {
     // Build query
     let query = {};
     if (type) {
-      query.type = type; // This filters by 'car' or 'bike'
+      query.type = type;
     }
     
     console.log('🔍 Fetching vehicles with query:', query);
@@ -162,6 +185,24 @@ router.get('/', async (req, res) => {
   }
 });
 
-
+// Increment WhatsApp clicks
+router.post('/:id/whatsapp-click', async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { whatsappClicks: 1 } },
+      { new: true }
+    );
+    
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+    
+    res.json({ message: 'WhatsApp click recorded', whatsappClicks: vehicle.whatsappClicks });
+  } catch (error) {
+    console.error('Error recording WhatsApp click:', error);
+    res.status(500).json({ message: 'Error recording click' });
+  }
+});
 
 module.exports = router;
